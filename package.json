@@ -1,0 +1,25 @@
+{
+  "name": "homebridge-drayton-wiser",
+  "version": "0.1.0",
+  "description": "Homebridge plugin for Drayton Wiser heating systems",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Stringer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "homebridge-plugin",
+    "drayton-wiser"
+  ],
+  "engines": {
+    "node": ">=10.0.0",
+    "homebridge": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.27",
+    "homebridge": "^1.1.2",
+    "node-fetch": "^2.6.0",
+    "rxjs": "^6.6.2"
+  }
+}

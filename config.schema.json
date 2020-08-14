@@ -1,0 +1,22 @@
+{
+  "pluginAlias": "drayton-wiser",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "secret": {
+        "title": "Secret",
+        "type": "string",
+        "required": true
+      },
+      "ip": {
+        "title": "IP Address",
+        "type": "string",
+        "required": true
+      }
+    }
+  },
+  "form": null,
+  "display": null
+}
