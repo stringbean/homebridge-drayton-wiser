@@ -1,7 +1,7 @@
 {
   "name": "@string-bean/homebridge-drayton-wiser",
   "displayName": "Homebridge Drayton Wiser",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Homebridge plugin for Drayton Wiser heating systems",
   "author": "Michael Stringer",
   "license": "Apache-2.0",
@@ -29,7 +29,8 @@
   ],
   "main": "dist/index.js",
   "dependencies": {
-    "@string-bean/drayton-wiser-client": "^0.1.2"
+    "@string-bean/drayton-wiser-client": "^0.1.2",
+    "rxjs": "^6.6.2"
   },
   "devDependencies": {
     "@tsconfig/node10": "^1.0.7",
@@ -40,7 +41,6 @@
     "homebridge": "^1.1.2",
     "node-fetch": "^2.6.0",
     "prettier": "^2.1.0",
-    "rxjs": "^6.6.2",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.2"
   },
