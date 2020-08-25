@@ -7,15 +7,6 @@ class WiserThermostatAccessory {
 
         const Characteristic = hap.Characteristic;
 
-        // this.service.registerCharacteristic({
-        //     characteristicType: Characteristic.Manufacturer,
-        //     serviceType: hap.Service.AccessoryInformation,
-        //     getValue: (data) => 'Drayton'
-        // })
-
-        // this.service.setCharacteristic(Characteristic.Manufacturer, 'Drayton');
-
-
         this.service.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
             .on('get', this.getCurrentState.bind(this))
             .setProps({validValues: [0, 1, 3]});

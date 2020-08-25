@@ -1,6 +1,7 @@
 const WiserThermostatAccessory = require('./WiserThermostatAccessory');
-const WiserApi = require('./WiserApi');
 const timer = require("rxjs").timer;
+
+const wiserClient = require('@string-bean/drayton-wiser-client');
 
 class WiserPlatformPlugin {
     accessories = [];
@@ -8,10 +9,13 @@ class WiserPlatformPlugin {
 
     constructor(log, config, api) {
         log.info("Loading Wiser platform")
+
+        console.log('client?', wiserClient);
+
         this.api = api;
         this.log = log;
 
-        this.wiserApi = new WiserApi(config.ip, config.secret);
+        this.wiserClient = new wiserClient.WiserClient(config.secret, config.ip);
 
         api.on('didFinishLaunching', () => {
             this.updateInterval = timer(0, 5000);
@@ -25,7 +29,6 @@ class WiserPlatformPlugin {
 
     configureAccessory(accessory) {
         this.accessories[accessory.UUID] = accessory;
-        // TODO find/update thermostat
     }
 
     _getOrCreateService(accessory, serviceType) {
@@ -39,7 +42,7 @@ class WiserPlatformPlugin {
     }
 
     _updateSystem() {
-        this.wiserApi.listRooms()
+        this.wiserClient.roomStatuses()
             .then((rooms) => {
                 this.log.debug('Finished querying rooms');
                 this.updateRooms(rooms);
@@ -49,31 +52,33 @@ class WiserPlatformPlugin {
     createThermostat(room) {
         const uuid = this.api.hap.uuid.generate(`drayton-wiser:1:${room.id}`);
 
-        if (this.accessories[uuid]) {
-            // update the room
-            if (!this.thermostats[uuid]) {
-                const accessory = this.accessories[uuid];
-                const service = this._getOrCreateService(accessory, this.api.hap.Service.Thermostat);
-                this.thermostats[uuid] = new WiserThermostatAccessory(service, room, this.api.hap, this.log);
-            }
+        console.log(`configuring thermostat ${room.id} (${uuid}`);
 
-            const thermostat = this.thermostats[uuid];
+        let newAccessory = false;
 
-            thermostat.update(room);
-            return [this.accessories[uuid], false];
-        } else {
-            const accessory = new this.api.platformAccessory(room.name, uuid);
-
-            const service = this._getOrCreateService(accessory, this.api.hap.Service.Thermostat);
-
-            const infoService = this._getOrCreateService(accessory, this.api.hap.Service.AccessoryInformation);
-            infoService.getCharacteristic(this.api.hap.Characteristic.Manufacturer)
-                .on('get', (callback) => callback('Drayton'));
-
-            this.thermostats[uuid] = new WiserThermostatAccessory(service, room, this.api.hap, this.log);
-            this.accessories[uuid] = accessory;
-            return [accessory, true];
+        if (!this.accessories[uuid]) {
+            this.accessories[uuid] = new this.api.platformAccessory(room.name, uuid);
+            newAccessory = true
         }
+
+        const accessory = this.accessories[uuid];
+        this._updateAccessoryInformation(accessory, room);
+
+        if (!this.thermostats[uuid]) {
+            const service = this._getOrCreateService(accessory, this.api.hap.Service.Thermostat);
+            this.thermostats[uuid] = new WiserThermostatAccessory(service, room, this.api.hap, this.log);
+        }
+
+        const thermostat = this.thermostats[uuid];
+        thermostat.update(room);
+
+        return [accessory, newAccessory];
+    }
+    
+    _updateAccessoryInformation(accessory, room) {
+        this._getOrCreateService(accessory, this.api.hap.Service.AccessoryInformation)
+            .setCharacteristic(this.api.hap.Characteristic.Manufacturer, 'Drayton')
+            .setCharacteristic(this.api.hap.Characteristic.Model, 'iTRV');
     }
 
     updateRooms(rooms) {
