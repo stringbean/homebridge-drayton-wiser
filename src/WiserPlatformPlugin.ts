@@ -5,35 +5,52 @@ import {
   PlatformAccessory,
   PlatformConfig,
 } from 'homebridge';
-import { Observable, timer } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { Room, WiserClient } from '@string-bean/drayton-wiser-client';
 import { WiserThermostatAccessory } from './WiserThermostatAccessory';
 
-export class WiserPlatformPlugin implements DynamicPlatformPlugin {
-  private updateInterval?: Observable<number>;
-  private wiserClient: WiserClient;
+const POLL_INTERVAL = 60 * 1000;
 
-  private accessories: Map<string, PlatformAccessory> = new Map();
-  private thermostats: Map<string, WiserThermostatAccessory> = new Map();
+export class WiserPlatformPlugin implements DynamicPlatformPlugin {
+  private updateSubscription?: Subscription;
+  private readonly wiserClient?: WiserClient;
+
+  private readonly accessories: Map<string, PlatformAccessory> = new Map();
+  private readonly thermostats: Map<
+    string,
+    WiserThermostatAccessory
+  > = new Map();
 
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    if (!config) {
+      log.info('Missing plugin config - please update config.json');
+      return;
+    }
+
     log.info('Loading Drayton Wiser platform');
 
     this.wiserClient = new WiserClient(config.secret, config.address);
 
     api.on('didFinishLaunching', () => {
-      // TODO can this be created unstarted
-      this.updateInterval = timer(0, 5000);
+      this.updateSubscription = timer(0, POLL_INTERVAL)
+        .pipe()
+        .subscribe(() => {
+          this.log.debug('Polling system');
 
-      this.updateInterval.subscribe(() => {
-        this.log.debug('Polling system');
-        // TODO await
-        this.updateSystem();
-      });
+          this.updateSystem().catch((error) => {
+            this.log.error('Error during system update', error);
+          });
+        });
+    });
+
+    api.on('shutdown', () => {
+      if (this.updateSubscription) {
+        this.updateSubscription.unsubscribe();
+      }
     });
   }
 
@@ -42,6 +59,10 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
   }
 
   private async updateSystem() {
+    if (!this.wiserClient) {
+      return;
+    }
+
     const rooms: Room[] = await this.wiserClient.roomStatuses();
 
     const currentAccessories: [PlatformAccessory, boolean][] = rooms
