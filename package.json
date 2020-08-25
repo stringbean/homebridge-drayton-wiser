@@ -2,27 +2,48 @@
   "name": "homebridge-drayton-wiser",
   "version": "0.1.0",
   "description": "Homebridge plugin for Drayton Wiser heating systems",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "Michael Stringer",
   "license": "Apache-2.0",
   "keywords": [
     "homebridge-plugin",
     "drayton-wiser"
   ],
-  "engines": {
-    "node": ">=10.0.0",
-    "homebridge": ">=1.0.0"
+  "homepage": "https://github.com/stringbean/homebridge-drayton-wiser",
+  "bugs": {
+    "url": "https://github.com/stringbean/homebridge-drayton-wiser/issues"
   },
-  "devDependencies": {
-    "@types/node": "^14.6.0",
-    "homebridge": "^1.1.2",
-    "node-fetch": "^2.6.0",
-    "rxjs": "^6.6.2"
+  "repository": "github:stringbean/homebridge-drayton-wiser",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "prettier": "prettier --write .",
+    "lint": "eslint .",
+    "demo": "ts-node example/ExampleApp.ts",
+    "prepare": "npm run build"
   },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "main": "dist/index.js",
   "dependencies": {
     "@string-bean/drayton-wiser-client": "^0.1.1"
+  },
+  "devDependencies": {
+    "@tsconfig/node10": "^1.0.7",
+    "@types/node": "^14.6.0",
+    "@typescript-eslint/eslint-plugin": "^3.10.1",
+    "@typescript-eslint/parser": "^3.10.1",
+    "eslint": "^7.7.0",
+    "homebridge": "^1.1.2",
+    "node-fetch": "^2.6.0",
+    "prettier": "^2.1.0",
+    "rxjs": "^6.6.2",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2"
+  },
+  "engines": {
+    "node": ">=10.13.0",
+    "homebridge": ">=1.0.0"
   }
 }
