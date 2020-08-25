@@ -10,7 +10,7 @@
         "type": "string",
         "required": true
       },
-      "ip": {
+      "address": {
         "title": "IP Address",
         "type": "string",
         "required": true

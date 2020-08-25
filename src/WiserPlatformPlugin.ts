@@ -23,7 +23,7 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
   ) {
     log.info('Loading Drayton Wiser platform');
 
-    this.wiserClient = new WiserClient(config.secret, config.ip);
+    this.wiserClient = new WiserClient(config.secret, config.address);
 
     api.on('didFinishLaunching', () => {
       // TODO can this be created unstarted
