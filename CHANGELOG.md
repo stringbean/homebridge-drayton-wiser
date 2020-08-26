@@ -1,5 +1,14 @@
 # Change Log
 
+## 0.2.0 (2020-08-26)
+
+- Add support for overriding room target temperature.
+- Add support for setting room mode:
+    - Off
+    - Auto
+    - Heat (manual mode)
+- Set system refresh time to 1 minute. 
+
 ## 0.1.2 (2020-08-25)
 
 - Corrected dependency issue.
