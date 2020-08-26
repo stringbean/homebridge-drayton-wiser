@@ -2,6 +2,7 @@
   "pluginAlias": "drayton-wiser",
   "pluginType": "platform",
   "singular": true,
+  "headerDisplay": "Please see the [installation guide](https://github.com/stringbean/homebridge-drayton-wiser/wiki/Installation) for instructions on how to obtain the secret from your HomeHub.",
   "schema": {
     "type": "object",
     "properties": {
@@ -11,12 +12,22 @@
         "required": true
       },
       "address": {
-        "title": "IP Address",
+        "title": "Address",
         "type": "string",
+        "description": "IP address or hostname of HeatHub",
         "required": true
       }
     }
   },
-  "form": null,
+  "form": [
+    {
+      "key": "secret",
+      "type": "password"
+    },
+    {
+      "key": "address",
+      "type": "text"
+    }
+  ],
   "display": null
 }
