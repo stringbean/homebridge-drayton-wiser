@@ -125,7 +125,13 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
 
       this.thermostats.set(
         uuid,
-        new WiserThermostatAccessory(service, room, this.api.hap, this.log),
+        new WiserThermostatAccessory(
+          service,
+          room,
+          this.api.hap,
+          this.log,
+          this.wiserClient!,
+        ),
       );
     }
 
