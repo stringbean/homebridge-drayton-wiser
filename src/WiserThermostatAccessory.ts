@@ -16,13 +16,8 @@ export class WiserThermostatAccessory extends BaseAccessory {
 
     this.registerCharacteristic({
       type: Characteristic.CurrentHeatingCoolingState,
-      getter: () => {
-        if (this.room.active) {
-          return Characteristic.CurrentHeatingCoolingState.HEAT;
-        } else {
-          return Characteristic.CurrentHeatingCoolingState.OFF;
-        }
-      },
+      getter: () =>
+        WiserThermostatAccessory.roomCurrentState(this.room, this.hap),
       props: {
         validValues: [
           Characteristic.CurrentHeatingCoolingState.HEAT,
@@ -33,9 +28,8 @@ export class WiserThermostatAccessory extends BaseAccessory {
 
     this.registerCharacteristic({
       type: Characteristic.TargetHeatingCoolingState,
-      getter: () => {
-        return this.currentTargetState();
-      },
+      getter: () =>
+        WiserThermostatAccessory.roomTargetState(this.room, this.hap),
       setter: this.setTargetState.bind(this),
       props: {
         validValues: [
@@ -74,7 +68,34 @@ export class WiserThermostatAccessory extends BaseAccessory {
   }
 
   update(room: Room): void {
-    // TODO push updates
+    if (this.room.temperature !== room.temperature) {
+      this.service.updateCharacteristic(
+        this.hap.Characteristic.CurrentTemperature,
+        room.temperature ? room.temperature : 0,
+      );
+    }
+
+    if (this.room.setTemperature !== room.setTemperature) {
+      this.service.updateCharacteristic(
+        this.hap.Characteristic.TargetTemperature,
+        room.temperature ? room.temperature : 0,
+      );
+    }
+
+    if (this.room.active !== room.active) {
+      this.service.updateCharacteristic(
+        this.hap.Characteristic.CurrentHeatingCoolingState,
+        WiserThermostatAccessory.roomCurrentState(room, this.hap),
+      );
+    }
+
+    if (this.room.mode !== room.mode) {
+      this.service.updateCharacteristic(
+        this.hap.Characteristic.TargetHeatingCoolingState,
+        WiserThermostatAccessory.roomTargetState(room, this.hap),
+      );
+    }
+
     this.room = room;
   }
 
@@ -99,32 +120,8 @@ export class WiserThermostatAccessory extends BaseAccessory {
     }
 
     return postUpdate.then((updated) => {
-      this.room = updated;
-
-      // let HAP know that the set temperature will have changed
-      this.service.updateCharacteristic(
-        this.hap.Characteristic.TargetTemperature,
-        updated.setTemperature ? updated.setTemperature : 0,
-      );
+      this.update(updated);
     });
-  }
-
-  private currentTargetState(): CharacteristicValue | undefined {
-    if (this.room.isValid) {
-      switch (this.room.mode) {
-        case RoomMode.Off:
-          return this.hap.Characteristic.TargetHeatingCoolingState.OFF;
-
-        case RoomMode.Manual:
-        case RoomMode.Boost:
-          return this.hap.Characteristic.TargetHeatingCoolingState.HEAT;
-
-        default:
-          return this.hap.Characteristic.TargetHeatingCoolingState.AUTO;
-      }
-    }
-
-    return undefined;
   }
 
   private setTargetTemperature(value: CharacteristicValue): Promise<void> {
@@ -132,16 +129,32 @@ export class WiserThermostatAccessory extends BaseAccessory {
       return this.client
         .overrideRoomSetPoint(this.room.id, <number>value)
         .then((updated) => {
-          this.room = updated;
-
-          // let HAP know that the state will have changed
-          this.service.updateCharacteristic(
-            this.hap.Characteristic.TargetHeatingCoolingState,
-            this.hap.Characteristic.TargetHeatingCoolingState.HEAT,
-          );
+          this.update(updated);
         });
     } else {
       return Promise.resolve();
+    }
+  }
+
+  private static roomTargetState(room: Room, hap: HAP): CharacteristicValue {
+    switch (room.mode) {
+      case RoomMode.Off:
+        return hap.Characteristic.TargetHeatingCoolingState.OFF;
+
+      case RoomMode.Manual:
+      case RoomMode.Boost:
+        return hap.Characteristic.TargetHeatingCoolingState.HEAT;
+
+      default:
+        return hap.Characteristic.TargetHeatingCoolingState.AUTO;
+    }
+  }
+
+  private static roomCurrentState(room: Room, hap: HAP): CharacteristicValue {
+    if (room.active) {
+      return hap.Characteristic.CurrentHeatingCoolingState.HEAT;
+    } else {
+      return hap.Characteristic.CurrentHeatingCoolingState.OFF;
     }
   }
 }
