@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.3.0 (2020-08-28)
+
+- Auto-detect address of HeatHub where possible.
+- Reliability improvements.
+
 ## 0.2.0 (2020-08-26)
 
 - Add support for overriding room target temperature.
