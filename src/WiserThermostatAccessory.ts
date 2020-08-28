@@ -1,105 +1,84 @@
-import {
-  CharacteristicGetCallback,
-  CharacteristicSetCallback,
-  CharacteristicValue,
-  Logger,
-  Service,
-} from 'homebridge';
-
+import { BaseAccessory } from './BaseAccessory';
+import { CharacteristicValue, Logger, Service } from 'homebridge';
 import { Room, RoomMode, WiserClient } from '@string-bean/drayton-wiser-client';
 import { HAP } from 'homebridge/lib/api';
 
-export class WiserThermostatAccessory {
-  // TODO battery level
+export class WiserThermostatAccessory extends BaseAccessory {
   constructor(
-    private readonly service: Service,
+    service: Service,
+    hap: HAP,
+    log: Logger,
+    client: WiserClient,
     private room: Room,
-    private readonly hap: HAP,
-    private readonly log: Logger,
-    private readonly client: WiserClient,
   ) {
+    super(service, hap, log, client);
     const Characteristic = hap.Characteristic;
 
-    this.service
-      .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
-      .on('get', this.getCurrentState.bind(this))
-      .setProps({
+    this.registerCharacteristic({
+      type: Characteristic.CurrentHeatingCoolingState,
+      getter: () => {
+        if (this.room.active) {
+          return Characteristic.CurrentHeatingCoolingState.HEAT;
+        } else {
+          return Characteristic.CurrentHeatingCoolingState.OFF;
+        }
+      },
+      props: {
         validValues: [
-          this.hap.Characteristic.CurrentHeatingCoolingState.HEAT,
-          this.hap.Characteristic.CurrentHeatingCoolingState.OFF,
+          Characteristic.CurrentHeatingCoolingState.HEAT,
+          Characteristic.CurrentHeatingCoolingState.OFF,
         ],
-      });
+      },
+    });
 
-    this.service
-      .getCharacteristic(Characteristic.TargetHeatingCoolingState)
-      .on('get', this.getTargetState.bind(this))
-      .on('set', this.setTargetState.bind(this))
-      .setProps({
+    this.registerCharacteristic({
+      type: Characteristic.TargetHeatingCoolingState,
+      getter: () => {
+        return this.currentTargetState();
+      },
+      setter: this.setTargetState.bind(this),
+      props: {
         validValues: [
-          this.hap.Characteristic.TargetHeatingCoolingState.OFF,
-          this.hap.Characteristic.TargetHeatingCoolingState.HEAT,
-          this.hap.Characteristic.TargetHeatingCoolingState.AUTO,
+          Characteristic.TargetHeatingCoolingState.OFF,
+          Characteristic.TargetHeatingCoolingState.HEAT,
+          Characteristic.TargetHeatingCoolingState.AUTO,
         ],
-      });
+      },
+    });
 
-    this.service
-      .getCharacteristic(Characteristic.CurrentTemperature)
-      .on('get', this.getCurrentTemperature.bind(this));
+    this.registerCharacteristic({
+      type: Characteristic.CurrentTemperature,
+      getter: () => {
+        return this.room.temperature;
+      },
+    });
 
-    this.service
-      .getCharacteristic(Characteristic.TargetTemperature)
-      .on('get', this.getTargetTemperature.bind(this))
-      .on('set', this.setTargetTemperature.bind(this))
-      .setProps({
+    this.registerCharacteristic({
+      type: Characteristic.TargetTemperature,
+      getter: () => {
+        return this.room.setTemperature;
+      },
+      setter: this.setTargetTemperature.bind(this),
+      props: {
         minValue: 5,
         minStep: 0.5,
         maxValue: 30,
-      });
+      },
+    });
 
-    this.service
-      .getCharacteristic(Characteristic.TemperatureDisplayUnits)
-      .on('get', this.getDisplayUnits.bind(this))
-      .on('set', this.setDisplayUnits.bind(this));
+    this.registerCharacteristic({
+      type: Characteristic.TemperatureDisplayUnits,
+      getter: () => Characteristic.TemperatureDisplayUnits.CELSIUS,
+      setter: () => Promise.resolve(),
+    });
   }
 
   update(room: Room): void {
+    // TODO push updates
     this.room = room;
   }
 
-  getCurrentState(callback: CharacteristicGetCallback): void {
-    if (this.room.active) {
-      callback(null, this.hap.Characteristic.CurrentHeatingCoolingState.HEAT);
-    } else {
-      callback(null, this.hap.Characteristic.CurrentHeatingCoolingState.OFF);
-    }
-  }
-
-  getTargetState(callback: CharacteristicGetCallback): void {
-    callback(null, this.currentTargetState());
-  }
-
-  private currentTargetState(): number | undefined {
-    if (this.room.isValid) {
-      switch (this.room.mode) {
-        case RoomMode.Off:
-          return this.hap.Characteristic.TargetHeatingCoolingState.OFF;
-
-        case RoomMode.Manual:
-        case RoomMode.Boost:
-          return this.hap.Characteristic.TargetHeatingCoolingState.HEAT;
-
-        default:
-          return this.hap.Characteristic.TargetHeatingCoolingState.AUTO;
-      }
-    }
-
-    return undefined;
-  }
-
-  setTargetState(
-    value: CharacteristicValue,
-    callback: CharacteristicSetCallback,
-  ): void {
+  private setTargetState(value: CharacteristicValue): Promise<void> {
     let postUpdate: Promise<Room>;
 
     switch (value) {
@@ -119,7 +98,7 @@ export class WiserThermostatAccessory {
         postUpdate = this.client.cancelRoomOverride(this.room.id);
     }
 
-    postUpdate.then((updated) => {
+    return postUpdate.then((updated) => {
       this.room = updated;
 
       // let HAP know that the set temperature will have changed
@@ -127,26 +106,32 @@ export class WiserThermostatAccessory {
         this.hap.Characteristic.TargetTemperature,
         updated.setTemperature ? updated.setTemperature : 0,
       );
-
-      callback(null, this.currentTargetState());
     });
   }
 
-  getCurrentTemperature(callback: CharacteristicGetCallback): void {
-    callback(null, this.room.temperature);
-  }
-
-  getTargetTemperature(callback: CharacteristicGetCallback): void {
-    callback(null, this.room.setTemperature);
-  }
-
-  setTargetTemperature(
-    value: CharacteristicValue,
-    callback: CharacteristicSetCallback,
-  ): void {
+  private currentTargetState(): CharacteristicValue | undefined {
     if (this.room.isValid) {
-      this.client.overrideRoomSetPoint(this.room.id, <number>value).then(
-        (updated) => {
+      switch (this.room.mode) {
+        case RoomMode.Off:
+          return this.hap.Characteristic.TargetHeatingCoolingState.OFF;
+
+        case RoomMode.Manual:
+        case RoomMode.Boost:
+          return this.hap.Characteristic.TargetHeatingCoolingState.HEAT;
+
+        default:
+          return this.hap.Characteristic.TargetHeatingCoolingState.AUTO;
+      }
+    }
+
+    return undefined;
+  }
+
+  private setTargetTemperature(value: CharacteristicValue): Promise<void> {
+    if (this.room.isValid) {
+      return this.client
+        .overrideRoomSetPoint(this.room.id, <number>value)
+        .then((updated) => {
           this.room = updated;
 
           // let HAP know that the state will have changed
@@ -154,26 +139,9 @@ export class WiserThermostatAccessory {
             this.hap.Characteristic.TargetHeatingCoolingState,
             this.hap.Characteristic.TargetHeatingCoolingState.HEAT,
           );
-
-          callback(null, this.room.setTemperature);
-        },
-        (error) => {
-          callback(error);
-        },
-      );
+        });
     } else {
-      callback(null);
+      return Promise.resolve();
     }
-  }
-
-  getDisplayUnits(callback: CharacteristicGetCallback): void {
-    callback(null, this.hap.Characteristic.TemperatureDisplayUnits.CELSIUS);
-  }
-
-  setDisplayUnits(
-    value: CharacteristicValue,
-    callback: CharacteristicSetCallback,
-  ): void {
-    callback(null);
   }
 }

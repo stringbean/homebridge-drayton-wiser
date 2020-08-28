@@ -45,9 +45,9 @@ Then add your system config to `config.json`:
 
 ### Config Options
 
-| Name              | Description                                       | Required | Default     |
-| ----------------- | ------------------------------------------------- | :------: | ----------- |
-| `secret`          | Secret key for the HeatHub from device setup mode | ✔        |             |
-| `namePrefix`      | Hostname prefix used in HeatHub detection         |          | `WiserHeat` |
-| `overrideAddress` | Disables auto-detection of HeatHub address        |          | `false`     |
-| `address`         | IP address or hostname of the HeatHub (only used if `overrideAddress` is set) | | |
+| Name              | Description                                                                   | Required | Default     |
+| ----------------- | ----------------------------------------------------------------------------- | :------: | ----------- |
+| `secret`          | Secret key for the HeatHub from device setup mode                             |    ✔     |             |
+| `namePrefix`      | Hostname prefix used in HeatHub detection                                     |          | `WiserHeat` |
+| `overrideAddress` | Disables auto-detection of HeatHub address                                    |          | `false`     |
+| `address`         | IP address or hostname of the HeatHub (only used if `overrideAddress` is set) |          |             |

@@ -47,7 +47,10 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
         config.address,
       );
     } else {
-      this.wiserClient = WiserClient.clientWithDiscovery(config.secret, config.namePrefix);
+      this.wiserClient = WiserClient.clientWithDiscovery(
+        config.secret,
+        config.namePrefix,
+      );
     }
 
     log.info('Loading Drayton Wiser platform');
@@ -144,10 +147,10 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
         uuid,
         new WiserThermostatAccessory(
           service,
-          room,
           this.api.hap,
           this.log,
           this.wiserClient!,
+          room,
         ),
       );
     }
