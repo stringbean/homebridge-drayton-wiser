@@ -1,4 +1,12 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/stringbean/homebridge-drayton-wiser/master/branding/Homebridge_x_Wiser.svg?sanitise=true" width="500px" />
+</p>
+
 # homebridge-drayton-wiser
+
+![Travis](https://img.shields.io/travis/com/stringbean/homebridge-drayton-wiser)
+![npm (scoped)](https://img.shields.io/npm/v/@string-bean/homebridge-drayton-wiser)
+![node support](https://img.shields.io/node/v-lts/@string-bean/homebridge-drayton-wiser)
 
 This [Homebridge](https://homebridge.io) plugin adds support for [Drayton Wiser](https://wiser.draytoncontrols.co.uk/)
 heating control systems.
