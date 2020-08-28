@@ -2,7 +2,7 @@
   "pluginAlias": "drayton-wiser",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "Please see the [installation guide](https://github.com/stringbean/homebridge-drayton-wiser/wiki/Installation) for instructions on how to obtain the secret from your HomeHub.",
+  "headerDisplay": "Please see the [installation guide](https://github.com/stringbean/homebridge-drayton-wiser/wiki/Installation) for instructions on how to obtain the secret from your HeatHub.",
   "schema": {
     "type": "object",
     "properties": {
@@ -11,11 +11,21 @@
         "type": "string",
         "required": true
       },
-      "address": {
-        "title": "Address",
+      "namePrefix": {
+        "title": "Discovery hostname prefix",
         "type": "string",
-        "description": "IP address or hostname of HeatHub",
-        "required": true
+        "description": "Only change this if your router overrides the name of your HeatHub",
+        "placeholder": "WiserHeat"
+      },
+      "overrideAddress": {
+        "title": "Manual HeatHub Address",
+        "type": "boolean",
+        "default": false,
+        "description": "Use this option if your HeatHub cannot be automatically discovered"
+      },
+      "address": {
+        "title": "HeatHub Address",
+        "type": "string"
       }
     }
   },
@@ -25,8 +35,17 @@
       "type": "password"
     },
     {
-      "key": "address",
+      "key": "namePrefix",
       "type": "text"
+    },
+    {
+      "key": "overrideAddress",
+      "type": "checkbox"
+    },
+    {
+      "key": "address",
+      "type": "text",
+      "condition": "overrideAddress"
     }
   ],
   "display": null

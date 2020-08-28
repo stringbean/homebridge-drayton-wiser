@@ -27,13 +27,30 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     if (!config) {
-      log.info('Missing plugin config - please update config.json');
+      log.warn('Missing plugin config - please update config.json');
       return;
     }
 
-    log.info('Loading Drayton Wiser platform');
+    if (!config.secret) {
+      log.warn('Invalid config - missing secret');
+      return;
+    }
 
-    this.wiserClient = new WiserClient(config.secret, config.address);
+    if (config.overrideAddress) {
+      if (!config.address) {
+        log.warn('Invalid config - overrideConfig is set without address');
+        return;
+      }
+
+      this.wiserClient = WiserClient.clientWithAddress(
+        config.secret,
+        config.address,
+      );
+    } else {
+      this.wiserClient = WiserClient.clientWithDiscovery(config.secret, config.namePrefix);
+    }
+
+    log.info('Loading Drayton Wiser platform');
 
     api.on('didFinishLaunching', () => {
       this.updateSubscription = timer(0, POLL_INTERVAL)
