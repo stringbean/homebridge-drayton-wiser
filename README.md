@@ -4,9 +4,12 @@
 
 # homebridge-drayton-wiser
 
-![Travis](https://img.shields.io/travis/com/stringbean/homebridge-drayton-wiser)
-![npm (scoped)](https://img.shields.io/npm/v/@string-bean/homebridge-drayton-wiser)
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+[![Travis](https://img.shields.io/travis/com/stringbean/homebridge-drayton-wiser)](https://travis-ci.com/github/stringbean/homebridge-drayton-wiser)
+[![npm (scoped)](https://img.shields.io/npm/v/@string-bean/homebridge-drayton-wiser)](https://www.npmjs.com/package/@string-bean/homebridge-drayton-wiser)
 ![node support](https://img.shields.io/node/v-lts/@string-bean/homebridge-drayton-wiser)
+[![Known Vulnerabilities](https://snyk.io/test/github/stringbean/homebridge-drayton-wiser/badge.svg)](https://snyk.io/test/github/stringbean/homebridge-drayton-wiser)
+
 
 This [Homebridge](https://homebridge.io) plugin adds support for [Drayton Wiser](https://wiser.draytoncontrols.co.uk/)
 heating control systems.
