@@ -26,9 +26,6 @@ Before starting, you will need to obtain the system secret from your Wiser HeatH
 5. Press the 'setup' button again.
    - The setup light should return to normal.
 
-You will also need the IP address of your HeatHub - you should be able to find this from your router (it normally
-appears as `WiserHeatXXX`).
-
 ### Homebridge Config UI X
 
 Search for 'wiser' on the plugins page and install 'Homebridge Drayton Wiser'. Then add your system secret and address
