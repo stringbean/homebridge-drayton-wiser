@@ -6,7 +6,12 @@ import {
   PlatformConfig,
 } from 'homebridge';
 import { Subscription, timer } from 'rxjs';
-import { Room, WiserClient } from '@string-bean/drayton-wiser-client';
+import {
+  Device,
+  FullStatus,
+  Room,
+  WiserClient,
+} from '@string-bean/drayton-wiser-client';
 import { WiserThermostatAccessory } from './WiserThermostatAccessory';
 import { WiserAwaySwitch } from './WiserAwaySwitch';
 
@@ -93,12 +98,12 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
       return;
     }
 
-    // TODO fetch device level info
+    const systemStatus = await this.wiserClient.fullStatus();
 
     const currentAccessories: PlatformAccessory[] = [];
 
-    await this.updateAway(this.wiserClient, currentAccessories);
-    await this.updateRooms(this.wiserClient, currentAccessories);
+    await this.updateAway(systemStatus, currentAccessories);
+    await this.updateRooms(systemStatus, currentAccessories);
 
     const staleAccessories = Array.from(this.accessories.values()).filter(
       (existing) =>
@@ -116,14 +121,12 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
   }
 
   private async updateAway(
-    client: WiserClient,
+    status: FullStatus,
     currentAccessories: PlatformAccessory[],
   ): Promise<void> {
     if (this.hideAwayButton) {
       return;
     }
-
-    const status = await client.systemStatus();
 
     const uuid = this.api.hap.uuid.generate('drayton-wiser:1:away');
 
@@ -150,28 +153,33 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
         service,
         this.api.hap,
         this.log,
-        client,
+        <WiserClient>this.wiserClient,
       );
     }
 
     this.updateAccessoryInformation({
       accessory: awayAccessory,
       model: 'Wiser HeatHub',
+      firmwareVersion: status.system.version,
+      serial: status.zigbee.macAddress,
     });
 
-    this.awaySwitch.update(status.awayMode);
+    this.awaySwitch.update(status.system.awayMode);
     currentAccessories.push(awayAccessory);
   }
 
   private async updateRooms(
-    client: WiserClient,
+    status: FullStatus,
     currentAccessories: PlatformAccessory[],
   ) {
-    const rooms: Room[] = await client.roomStatuses();
+    const rooms: Room[] = status.rooms;
+    const devices: Device[] = status.devices;
 
     const thermostats: [PlatformAccessory, boolean][] = rooms
       .filter((room) => room.isValid)
-      .map((room) => this.createThermostat(room));
+      .map((room) =>
+        this.createThermostat(room, this.findRoomDevices(room, devices)),
+      );
 
     const newAccessories = thermostats
       .filter(([, isNew]) => isNew)
@@ -192,7 +200,24 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     currentAccessories.push(...thermostats.map(([thermostat]) => thermostat));
   }
 
-  private createThermostat(room: Room): [PlatformAccessory, boolean] {
+  private findRoomDevices(room: Room, devices: Device[]): Device[] {
+    const matched = devices.filter((device) =>
+      room.thermostatIds.includes(device.id),
+    );
+
+    if (room.roomStatId) {
+      devices.push(
+        ...devices.filter((device) => room.roomStatId === device.id),
+      );
+    }
+
+    return matched;
+  }
+
+  private createThermostat(
+    room: Room,
+    roomDevices: Device[],
+  ): [PlatformAccessory, boolean] {
     const uuid = this.api.hap.uuid.generate(`drayton-wiser:1:${room.id}`);
     this.log.debug(`configuring thermostat ${room.id} (${uuid})`);
 
@@ -207,9 +232,16 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     }
 
     const accessory = <PlatformAccessory>this.accessories.get(uuid);
+
+    // TODO implement configurable behaviour for this
+
+    const primaryDevice: Device | undefined = roomDevices[0];
+
     this.updateAccessoryInformation({
       accessory,
       model: 'iTRV',
+      serial: primaryDevice?.serialNumber ?? 'UNKNOWN',
+      firmwareVersion: primaryDevice?.firmwareVersion ?? 'UNKNOWN',
     });
 
     if (!this.thermostats.has(uuid)) {
@@ -224,7 +256,7 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
           service,
           this.api.hap,
           this.log,
-          this.wiserClient!,
+          <WiserClient>this.wiserClient,
           room,
         ),
       );
@@ -244,34 +276,19 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
   }: {
     accessory: PlatformAccessory;
     model: string;
-    serial?: string;
-    firmwareVersion?: string;
+    serial: string;
+    firmwareVersion: string;
   }): void {
     const Characteristic = this.api.hap.Characteristic;
 
-    const service = WiserPlatformPlugin.getOrCreateService(
+    WiserPlatformPlugin.getOrCreateService(
       accessory,
       this.api.hap.Service.AccessoryInformation,
     )
       .setCharacteristic(Characteristic.Manufacturer, 'Drayton')
-      .setCharacteristic(Characteristic.Model, model);
-
-    if (serial) {
-      service.setCharacteristic(Characteristic.SerialNumber, serial);
-    } else {
-      const existing = service.getCharacteristic(Characteristic.SerialNumber);
-
-      if (existing) {
-        service.removeCharacteristic(existing);
-      }
-    }
-
-    if (firmwareVersion) {
-      service.setCharacteristic(
-        Characteristic.FirmwareRevision,
-        firmwareVersion,
-      );
-    }
+      .setCharacteristic(Characteristic.Model, model)
+      .setCharacteristic(Characteristic.SerialNumber, serial)
+      .setCharacteristic(Characteristic.FirmwareRevision, firmwareVersion);
   }
 
   // TODO wtf type should serviceType be?
