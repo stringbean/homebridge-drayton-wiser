@@ -8,6 +8,7 @@ import {
 import { Subscription, timer } from 'rxjs';
 import { Room, WiserClient } from '@string-bean/drayton-wiser-client';
 import { WiserThermostatAccessory } from './WiserThermostatAccessory';
+import { WiserAwaySwitch } from './WiserAwaySwitch';
 
 const POLL_INTERVAL = 60 * 1000;
 
@@ -20,6 +21,8 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     string,
     WiserThermostatAccessory
   > = new Map();
+
+  private awaySwitch?: WiserAwaySwitch;
 
   constructor(
     public readonly log: Logger,
@@ -83,15 +86,14 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
       return;
     }
 
-    const rooms: Room[] = await this.wiserClient.roomStatuses();
+    const currentAccessories: PlatformAccessory[] = [];
 
-    const currentAccessories: [PlatformAccessory, boolean][] = rooms
-      .filter((room) => room.isValid)
-      .map((room) => this.createThermostat(room));
+    await this.updateAway(this.wiserClient, currentAccessories);
+    await this.updateRooms(this.wiserClient, currentAccessories);
 
     const staleAccessories = Array.from(this.accessories.values()).filter(
       (existing) =>
-        !currentAccessories.find(([current]) => current.UUID === existing.UUID),
+        !currentAccessories.find((current) => current.UUID === existing.UUID),
     );
 
     if (staleAccessories.length) {
@@ -102,13 +104,63 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
         staleAccessories,
       );
     }
+  }
 
-    const newAccessories = currentAccessories
+  private async updateAway(
+    client: WiserClient,
+    currentAccessories: PlatformAccessory[],
+  ): Promise<void> {
+    const status = await client.systemStatus();
+
+    const uuid = this.api.hap.uuid.generate('drayton-wiser:1:away');
+
+    if (!this.accessories.has(uuid)) {
+      const accessory = new this.api.platformAccessory('Away Mode', uuid);
+      this.accessories.set(uuid, accessory);
+
+      this.api.registerPlatformAccessories(
+        'homebridge-drayton-wiser',
+        'drayton-wiser',
+        [accessory],
+      );
+    }
+
+    const awayAccessory = <PlatformAccessory>this.accessories.get(uuid);
+
+    if (!this.awaySwitch) {
+      const service = WiserPlatformPlugin.getOrCreateService(
+        awayAccessory,
+        this.api.hap.Service.Switch,
+      );
+
+      this.awaySwitch = new WiserAwaySwitch(
+        service,
+        this.api.hap,
+        this.log,
+        client,
+      );
+    }
+
+    this.awaySwitch.update(status.awayMode);
+    currentAccessories.push(awayAccessory);
+  }
+
+  private async updateRooms(
+    client: WiserClient,
+    currentAccessories: PlatformAccessory[],
+  ) {
+    const rooms: Room[] = await client.roomStatuses();
+
+    const thermostats: [PlatformAccessory, boolean][] = rooms
+      .filter((room) => room.isValid)
+      .map((room) => this.createThermostat(room));
+
+    const newAccessories = thermostats
       .filter(([, isNew]) => isNew)
       .map(([accessory]) => accessory);
 
     if (newAccessories.length) {
-      this.log.info(`Found ${newAccessories.length} new accessories`);
+      this.log.info(`Found ${newAccessories.length} new rooms`);
     }
 
     if (newAccessories.length) {
@@ -118,11 +170,13 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
         newAccessories,
       );
     }
+
+    currentAccessories.push(...thermostats.map(([thermostat]) => thermostat));
   }
 
   private createThermostat(room: Room): [PlatformAccessory, boolean] {
     const uuid = this.api.hap.uuid.generate(`drayton-wiser:1:${room.id}`);
-    this.log.debug(`configuring thermostat ${room.id} (${uuid}`);
+    this.log.debug(`configuring thermostat ${room.id} (${uuid})`);
 
     let newAccessory = false;
 
