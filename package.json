@@ -1,7 +1,7 @@
 {
   "name": "@string-bean/homebridge-drayton-wiser",
   "displayName": "Homebridge Drayton Wiser",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Homebridge plugin for Drayton Wiser heating systems",
   "author": "Michael Stringer",
   "license": "Apache-2.0",

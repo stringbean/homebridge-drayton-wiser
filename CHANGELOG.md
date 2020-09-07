@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.4.0 (2020-09-07)
+
+- Add 'Away Mode' button:
+  - Shows & changes Wiser system away mode
+  - Can be hidden from 'Accessory Options'
+
 ## 0.3.0 (2020-08-28)
 
 - Auto-detect address of HeatHub where possible.
