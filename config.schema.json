@@ -26,6 +26,12 @@
       "address": {
         "title": "HeatHub Address",
         "type": "string"
+      },
+      "hideAwayButton": {
+        "title": "Hide 'Away' button",
+        "type": "boolean",
+        "default": false,
+        "description": "Hides switch that enables 'Away' mode for your Wiser system"
       }
     }
   },
@@ -46,7 +52,12 @@
       "key": "address",
       "type": "text",
       "condition": "overrideAddress"
+    },
+    {
+      "type": "fieldset",
+      "title": "Accessory Options",
+      "expandable": true,
+      "items": ["hideAwayButton"]
     }
-  ],
-  "display": null
+  ]
 }
