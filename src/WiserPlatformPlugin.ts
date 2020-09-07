@@ -16,12 +16,17 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
   private updateSubscription?: Subscription;
   private readonly wiserClient?: WiserClient;
 
+  // config options
+  private readonly hideAwayButton?: boolean;
+
+  // homebridge accessories
   private readonly accessories: Map<string, PlatformAccessory> = new Map();
+
+  // wiser accessory wrappers
   private readonly thermostats: Map<
     string,
     WiserThermostatAccessory
   > = new Map();
-
   private awaySwitch?: WiserAwaySwitch;
 
   constructor(
@@ -55,6 +60,8 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
         config.namePrefix,
       );
     }
+
+    this.hideAwayButton = config.hideAwayButton;
 
     log.info('Loading Drayton Wiser platform');
 
@@ -110,6 +117,10 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     client: WiserClient,
     currentAccessories: PlatformAccessory[],
   ): Promise<void> {
+    if (this.hideAwayButton) {
+      return;
+    }
+
     const status = await client.systemStatus();
 
     const uuid = this.api.hap.uuid.generate('drayton-wiser:1:away');
