@@ -93,6 +93,8 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
       return;
     }
 
+    // TODO fetch device level info
+
     const currentAccessories: PlatformAccessory[] = [];
 
     await this.updateAway(this.wiserClient, currentAccessories);
@@ -152,6 +154,11 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
       );
     }
 
+    this.updateAccessoryInformation({
+      accessory: awayAccessory,
+      model: 'Wiser HeatHub',
+    });
+
     this.awaySwitch.update(status.awayMode);
     currentAccessories.push(awayAccessory);
   }
@@ -200,7 +207,10 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     }
 
     const accessory = <PlatformAccessory>this.accessories.get(uuid);
-    this.updateAccessoryInformation(accessory, room);
+    this.updateAccessoryInformation({
+      accessory,
+      model: 'iTRV',
+    });
 
     if (!this.thermostats.has(uuid)) {
       const service = WiserPlatformPlugin.getOrCreateService(
@@ -226,15 +236,42 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     return [accessory, newAccessory];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private updateAccessoryInformation(accessory: PlatformAccessory, room: Room) {
-    WiserPlatformPlugin.getOrCreateService(
+  private updateAccessoryInformation({
+    accessory,
+    model,
+    serial,
+    firmwareVersion,
+  }: {
+    accessory: PlatformAccessory;
+    model: string;
+    serial?: string;
+    firmwareVersion?: string;
+  }): void {
+    const Characteristic = this.api.hap.Characteristic;
+
+    const service = WiserPlatformPlugin.getOrCreateService(
       accessory,
       this.api.hap.Service.AccessoryInformation,
     )
-      .setCharacteristic(this.api.hap.Characteristic.Manufacturer, 'Drayton')
-      .setCharacteristic(this.api.hap.Characteristic.Model, 'iTRV');
-    // TODO serial
+      .setCharacteristic(Characteristic.Manufacturer, 'Drayton')
+      .setCharacteristic(Characteristic.Model, model);
+
+    if (serial) {
+      service.setCharacteristic(Characteristic.SerialNumber, serial);
+    } else {
+      const existing = service.getCharacteristic(Characteristic.SerialNumber);
+
+      if (existing) {
+        service.removeCharacteristic(existing);
+      }
+    }
+
+    if (firmwareVersion) {
+      service.setCharacteristic(
+        Characteristic.FirmwareRevision,
+        firmwareVersion,
+      );
+    }
   }
 
   // TODO wtf type should serviceType be?
