@@ -1,21 +1,29 @@
 import { BaseAccessory } from './BaseAccessory';
-import { CharacteristicValue, Logger, Service } from 'homebridge';
-import { Room, RoomMode, WiserClient } from '@string-bean/drayton-wiser-client';
+import { CharacteristicValue, Logger, PlatformAccessory } from 'homebridge';
+import {
+  Device,
+  Room,
+  RoomMode,
+  WiserClient,
+} from '@string-bean/drayton-wiser-client';
 import { HAP } from 'homebridge/lib/api';
+import { BatteryLevel } from '@string-bean/drayton-wiser-client/dist/api/BatteryLevel';
 
 export class WiserThermostatAccessory extends BaseAccessory {
   constructor(
-    service: Service,
+    accessory: PlatformAccessory,
     hap: HAP,
     log: Logger,
     client: WiserClient,
     private room: Room,
+    private device?: Device,
   ) {
-    super(service, hap, log, client);
+    super(accessory, hap, log, client);
     const Characteristic = hap.Characteristic;
 
     this.registerCharacteristic({
-      type: Characteristic.CurrentHeatingCoolingState,
+      serviceType: hap.Service.Thermostat,
+      characteristicType: Characteristic.CurrentHeatingCoolingState,
       getter: () =>
         WiserThermostatAccessory.roomCurrentState(this.room, this.hap),
       props: {
@@ -27,7 +35,8 @@ export class WiserThermostatAccessory extends BaseAccessory {
     });
 
     this.registerCharacteristic({
-      type: Characteristic.TargetHeatingCoolingState,
+      serviceType: hap.Service.Thermostat,
+      characteristicType: Characteristic.TargetHeatingCoolingState,
       getter: () =>
         WiserThermostatAccessory.roomTargetState(this.room, this.hap),
       setter: this.setTargetState.bind(this),
@@ -41,14 +50,16 @@ export class WiserThermostatAccessory extends BaseAccessory {
     });
 
     this.registerCharacteristic({
-      type: Characteristic.CurrentTemperature,
+      serviceType: hap.Service.Thermostat,
+      characteristicType: Characteristic.CurrentTemperature,
       getter: () => {
         return this.room.temperature;
       },
     });
 
     this.registerCharacteristic({
-      type: Characteristic.TargetTemperature,
+      serviceType: hap.Service.Thermostat,
+      characteristicType: Characteristic.TargetTemperature,
       getter: () => {
         return this.room.setTemperature;
       },
@@ -61,42 +72,85 @@ export class WiserThermostatAccessory extends BaseAccessory {
     });
 
     this.registerCharacteristic({
-      type: Characteristic.TemperatureDisplayUnits,
+      serviceType: hap.Service.Thermostat,
+      characteristicType: Characteristic.TemperatureDisplayUnits,
       getter: () => Characteristic.TemperatureDisplayUnits.CELSIUS,
       setter: () => Promise.resolve(),
     });
+
+    if (device) {
+      this.registerCharacteristic({
+        serviceType: hap.Service.BatteryService,
+        characteristicType: Characteristic.BatteryLevel,
+        getter: () => {
+          if (this.device) {
+            return WiserThermostatAccessory.batteryLevel(this.device);
+          } else {
+            return 0;
+          }
+        },
+      });
+
+      this.registerCharacteristic({
+        serviceType: hap.Service.BatteryService,
+        characteristicType: Characteristic.StatusLowBattery,
+        getter: () => this.device?.batteryLevel === BatteryLevel.Low,
+      });
+    }
   }
 
-  update(room: Room): void {
+  update(room: Room, device?: Device): void {
     if (this.room.temperature !== room.temperature) {
-      this.service.updateCharacteristic(
-        this.hap.Characteristic.CurrentTemperature,
-        room.temperature ? room.temperature : 0,
-      );
+      this.updateCharacteristic({
+        serviceType: this.hap.Service.Thermostat,
+        characteristicType: this.hap.Characteristic.CurrentTemperature,
+        value: room.temperature ? room.temperature : 0,
+      });
     }
 
     if (this.room.setTemperature !== room.setTemperature) {
-      this.service.updateCharacteristic(
-        this.hap.Characteristic.TargetTemperature,
-        room.temperature ? room.temperature : 0,
-      );
+      this.updateCharacteristic({
+        serviceType: this.hap.Service.Thermostat,
+        characteristicType: this.hap.Characteristic.TargetTemperature,
+        value: room.temperature ? room.temperature : 0,
+      });
     }
 
     if (this.room.active !== room.active) {
-      this.service.updateCharacteristic(
-        this.hap.Characteristic.CurrentHeatingCoolingState,
-        WiserThermostatAccessory.roomCurrentState(room, this.hap),
-      );
+      this.updateCharacteristic({
+        serviceType: this.hap.Service.Thermostat,
+        characteristicType: this.hap.Characteristic.CurrentHeatingCoolingState,
+        value: WiserThermostatAccessory.roomCurrentState(room, this.hap),
+      });
     }
 
     if (this.room.mode !== room.mode) {
-      this.service.updateCharacteristic(
-        this.hap.Characteristic.TargetHeatingCoolingState,
-        WiserThermostatAccessory.roomTargetState(room, this.hap),
-      );
+      this.updateCharacteristic({
+        serviceType: this.hap.Service.Thermostat,
+        characteristicType: this.hap.Characteristic.TargetHeatingCoolingState,
+        value: WiserThermostatAccessory.roomTargetState(room, this.hap),
+      });
     }
 
     this.room = room;
+
+    if (device) {
+      if (this.device?.batteryLevel !== device.batteryLevel) {
+        this.updateCharacteristic({
+          serviceType: this.hap.Service.BatteryService,
+          characteristicType: this.hap.Characteristic.BatteryLevel,
+          value: WiserThermostatAccessory.batteryLevel(device) ?? 0,
+        });
+
+        this.updateCharacteristic({
+          serviceType: this.hap.Service.BatteryService,
+          characteristicType: this.hap.Characteristic.StatusLowBattery,
+          value: device.batteryLevel === BatteryLevel.Low,
+        });
+      }
+
+      this.device = device;
+    }
   }
 
   private setTargetState(value: CharacteristicValue): Promise<void> {
@@ -155,6 +209,27 @@ export class WiserThermostatAccessory extends BaseAccessory {
       return hap.Characteristic.CurrentHeatingCoolingState.HEAT;
     } else {
       return hap.Characteristic.CurrentHeatingCoolingState.OFF;
+    }
+  }
+
+  private static batteryLevel(
+    device?: Device,
+  ): CharacteristicValue | undefined {
+    switch (device?.batteryLevel) {
+      case BatteryLevel.Normal:
+        return 100;
+
+      case BatteryLevel.TwoThirds:
+        return 66;
+
+      case BatteryLevel.OneThird:
+        return 33;
+
+      case BatteryLevel.Low:
+        return 10;
+
+      default:
+        return undefined;
     }
   }
 }

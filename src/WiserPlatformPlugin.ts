@@ -144,13 +144,8 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     const awayAccessory = <PlatformAccessory>this.accessories.get(uuid);
 
     if (!this.awaySwitch) {
-      const service = WiserPlatformPlugin.getOrCreateService(
-        awayAccessory,
-        this.api.hap.Service.Switch,
-      );
-
       this.awaySwitch = new WiserAwaySwitch(
-        service,
+        awayAccessory,
         this.api.hap,
         this.log,
         <WiserClient>this.wiserClient,
@@ -245,19 +240,15 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     });
 
     if (!this.thermostats.has(uuid)) {
-      const service = WiserPlatformPlugin.getOrCreateService(
-        accessory,
-        this.api.hap.Service.Thermostat,
-      );
-
       this.thermostats.set(
         uuid,
         new WiserThermostatAccessory(
-          service,
+          accessory,
           this.api.hap,
           this.log,
           <WiserClient>this.wiserClient,
           room,
+          primaryDevice,
         ),
       );
     }
@@ -268,6 +259,7 @@ export class WiserPlatformPlugin implements DynamicPlatformPlugin {
     return [accessory, newAccessory];
   }
 
+  // TODO move into BaseAccessory
   private updateAccessoryInformation({
     accessory,
     model,

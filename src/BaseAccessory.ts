@@ -4,6 +4,7 @@ import {
   CharacteristicSetCallback,
   CharacteristicValue,
   Logger,
+  PlatformAccessory,
   Service,
   WithUUID,
 } from 'homebridge';
@@ -12,27 +13,41 @@ import { HAP } from 'homebridge/lib/api';
 import { CharacteristicProps } from 'hap-nodejs/dist/lib/Characteristic';
 
 export type CharacteristicType = WithUUID<{ new (): Characteristic }>;
+export type ServiceType = WithUUID<typeof Service>;
 
 export abstract class BaseAccessory {
   protected constructor(
-    protected readonly service: Service,
+    protected readonly accessory: PlatformAccessory,
     protected readonly hap: HAP,
     protected readonly log: Logger,
     protected readonly client: WiserClient,
   ) {}
 
+  protected getService(serviceType: ServiceType): Service {
+    const service = this.accessory.getService(serviceType);
+
+    if (service) {
+      return service;
+    }
+
+    return this.accessory.addService(serviceType);
+  }
+
   protected registerCharacteristic({
-    type,
+    serviceType,
+    characteristicType,
     getter,
     setter,
     props,
   }: {
-    type: CharacteristicType;
+    serviceType: ServiceType;
+    characteristicType: CharacteristicType;
     getter?: () => CharacteristicValue | undefined;
     setter?: (value: CharacteristicValue) => Promise<void>;
     props?: Partial<CharacteristicProps>;
   }): void {
-    const characteristic = this.service.getCharacteristic(type);
+    const service = this.getService(serviceType);
+    const characteristic = service.getCharacteristic(characteristicType);
 
     if (getter) {
       characteristic.on('get', (callback: CharacteristicGetCallback) => {
@@ -62,5 +77,20 @@ export abstract class BaseAccessory {
     if (props) {
       characteristic.setProps(props);
     }
+  }
+
+  protected updateCharacteristic({
+    serviceType,
+    characteristicType,
+    value,
+  }: {
+    serviceType: ServiceType;
+    characteristicType: CharacteristicType;
+    value: CharacteristicValue;
+  }): void {
+    this.getService(serviceType).updateCharacteristic(
+      characteristicType,
+      value,
+    );
   }
 }
