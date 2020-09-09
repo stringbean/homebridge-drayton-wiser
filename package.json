@@ -16,10 +16,8 @@
   "repository": "github:stringbean/homebridge-drayton-wiser",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
     "prettier": "prettier --write .",
     "lint": "eslint .",
-    "demo": "ts-node example/ExampleApp.ts",
     "prepare": "npm run build"
   },
   "files": [
