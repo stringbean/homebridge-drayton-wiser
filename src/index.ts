@@ -3,7 +3,7 @@ import { WiserPlatformPlugin } from './WiserPlatformPlugin';
 
 export = (homebridge: API) => {
   homebridge.registerPlatform(
-    'homebridge-drayton-wiser',
+    '@string-bean/homebridge-drayton-wiser',
     'drayton-wiser',
     WiserPlatformPlugin,
   );
