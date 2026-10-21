@@ -1,16 +1,16 @@
 import {
   Characteristic,
   CharacteristicGetCallback,
+  CharacteristicProps,
   CharacteristicSetCallback,
   CharacteristicValue,
+  HAP,
   Logger,
   PlatformAccessory,
   Service,
   WithUUID,
 } from 'homebridge';
 import { WiserClient } from '@string-bean/drayton-wiser-client';
-import { HAP } from 'homebridge/lib/api';
-import { CharacteristicProps } from 'hap-nodejs/dist/lib/Characteristic';
 
 export type CharacteristicType = WithUUID<{ new (): Characteristic }>;
 export type ServiceType = WithUUID<typeof Service>;
@@ -30,7 +30,9 @@ export abstract class BaseAccessory {
       return service;
     }
 
-    return this.accessory.addService(serviceType);
+    // service subclasses have optional constructor args, unlike the base Service
+    const ServiceClass = <new () => Service>(<unknown>serviceType);
+    return this.accessory.addService(new ServiceClass());
   }
 
   protected registerCharacteristic({
@@ -54,7 +56,7 @@ export abstract class BaseAccessory {
         try {
           callback(null, getter());
         } catch (error) {
-          callback(error);
+          callback(<Error>error);
         }
       });
     }

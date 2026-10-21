@@ -1,6 +1,10 @@
 import { BaseAccessory } from './BaseAccessory';
-import { CharacteristicValue, Logger, PlatformAccessory } from 'homebridge';
-import { HAP } from 'homebridge/lib/api';
+import {
+  CharacteristicValue,
+  Logger,
+  PlatformAccessory,
+  HAP,
+} from 'homebridge';
 import { FullStatus, WiserClient } from '@string-bean/drayton-wiser-client';
 
 export class WiserAwaySwitch extends BaseAccessory {

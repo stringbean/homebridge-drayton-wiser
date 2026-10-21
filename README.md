@@ -52,9 +52,20 @@ Then add your system config to `config.json`:
 
 ### Config Options
 
-| Name              | Description                                                                   | Required | Default     |
-| ----------------- | ----------------------------------------------------------------------------- | :------: | ----------- |
-| `secret`          | Secret key for the HeatHub from device setup mode                             |    ✔     |             |
-| `namePrefix`      | Hostname prefix used in HeatHub detection                                     |          | `WiserHeat` |
-| `overrideAddress` | Disables auto-detection of HeatHub address                                    |          | `false`     |
-| `address`         | IP address or hostname of the HeatHub (only used if `overrideAddress` is set) |          |             |
+| Name                | Description                                                                   | Required | Default     |
+| ------------------- | ----------------------------------------------------------------------------- | :------: | ----------- |
+| `secret`            | Secret key for the HeatHub from device setup mode                             |    ✔     |             |
+| `namePrefix`        | Hostname prefix used in HeatHub detection                                     |          | `WiserHeat` |
+| `overrideAddress`   | Disables auto-detection of HeatHub address                                    |          | `false`     |
+| `address`           | IP address or hostname of the HeatHub (only used if `overrideAddress` is set) |          |             |
+| `hideAwayButton`    | Hides the switch that enables 'Away' mode                                     |          | `false`     |
+| `hideBoostSwitches` | Hides the 'Boost' switch on each room                                         |          | `false`     |
+| `boostDuration`     | How long a room boost lasts, in minutes                                       |          | `60`        |
+| `boostTemperature`  | How much a boost raises the room temperature by, in °C                        |          | `2`         |
+
+### Boosting rooms
+
+Each room has a 'Boost' switch alongside its thermostat. Turning it on raises
+the room `boostTemperature` above its current temperature for `boostDuration`
+minutes, after which it returns to its schedule. Turning it off, or changing the
+target temperature, ends the boost early.

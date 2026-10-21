@@ -32,6 +32,29 @@
         "type": "boolean",
         "default": false,
         "description": "Hides switch that enables 'Away' mode for your Wiser system"
+      },
+      "hideBoostSwitches": {
+        "title": "Hide room 'Boost' switches",
+        "type": "boolean",
+        "default": false,
+        "description": "Hides the switch on each room that boosts its heating for a limited time"
+      },
+      "boostDuration": {
+        "title": "Boost duration (minutes)",
+        "type": "integer",
+        "default": 60,
+        "minimum": 15,
+        "maximum": 1440,
+        "description": "How long a room boost lasts before returning to its schedule"
+      },
+      "boostTemperature": {
+        "title": "Boost temperature increase (°C)",
+        "type": "number",
+        "default": 2,
+        "minimum": 0.5,
+        "maximum": 10,
+        "multipleOf": 0.5,
+        "description": "How much to raise the room temperature by when boosting"
       }
     }
   },
@@ -57,7 +80,22 @@
       "type": "fieldset",
       "title": "Accessory Options",
       "expandable": true,
-      "items": ["hideAwayButton"]
+      "items": [
+        "hideAwayButton",
+        "hideBoostSwitches",
+        {
+          "key": "boostDuration",
+          "condition": {
+            "functionBody": "return !model.hideBoostSwitches;"
+          }
+        },
+        {
+          "key": "boostTemperature",
+          "condition": {
+            "functionBody": "return !model.hideBoostSwitches;"
+          }
+        }
+      ]
     }
   ]
 }
